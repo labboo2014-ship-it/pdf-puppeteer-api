@@ -2,36 +2,23 @@ import chromium from "@sparticuz/chromium";
 import puppeteer from "puppeteer-core";
 
 export default async function handler(req, res) {
-  // ---- CORS 対応 ----
-  const origin = req.headers.origin || "*";
-  res.setHeader("Access-Control-Allow-Origin", origin);
-  res.setHeader("Vary", "Origin");
+  // ---- CORS ----
+  res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  // Preflight (OPTIONS) に対してはここで返しておしまい
-  if (req.method === "OPTIONS") {
-    res.status(200).end();
-    return;
-  }
-
-  if (req.method !== "POST") {
-    res.status(405).json({ error: "Method not allowed" });
-    return;
-  }
+  if (req.method === "OPTIONS") return res.status(200).end();
 
   try {
     const { html } = req.body || {};
+    if (!html) return res.status(400).json({ error: "Missing html" });
 
-    if (!html) {
-      res.status(400).json({ error: "Missing html" });
-      return;
-    }
+    const executablePath = await chromium.executablePath;
 
     const browser = await puppeteer.launch({
+      executablePath,
       args: chromium.args,
-      executablePath: await chromium.executablePath,
-      headless: true,
+      headless: chromium.headless,
+      defaultViewport: chromium.defaultViewport
     });
 
     const page = await browser.newPage();
@@ -39,16 +26,16 @@ export default async function handler(req, res) {
 
     const pdf = await page.pdf({
       format: "A4",
-      printBackground: true,
+      printBackground: true
     });
 
     await browser.close();
 
-    // PDF 返却
     res.setHeader("Content-Type", "application/pdf");
     res.send(pdf);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message || "Internal Server Error" });
+
+  } catch (error) {
+    console.error("PDF Error:", error);
+    res.status(500).json({ error: error.message || "Internal error" });
   }
 }
