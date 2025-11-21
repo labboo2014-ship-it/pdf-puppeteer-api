@@ -1,0 +1,9 @@
+{
+  "name": "pdf-puppeteer-api",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "@sparticuz/chromium-min": "^120.0.0",
+    "puppeteer-core": "^22.4.1"
+  }
+}
