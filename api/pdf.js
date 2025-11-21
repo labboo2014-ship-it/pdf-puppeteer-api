@@ -10,15 +10,18 @@ export default async function handler(req, res) {
 
   try {
     const { html } = req.body || {};
-    if (!html) return res.status(400).json({ error: "Missing html" });
+    if (!html) {
+      return res.status(400).json({ error: "Missing html" });
+    }
 
-    const executablePath = await chromium.executablePath;
+    // ★ ここがポイント：関数を呼ぶ
+    const executablePath = await chromium.executablePath();
 
     const browser = await puppeteer.launch({
       executablePath,
       args: chromium.args,
       headless: chromium.headless,
-      defaultViewport: chromium.defaultViewport
+      defaultViewport: chromium.defaultViewport,
     });
 
     const page = await browser.newPage();
@@ -26,16 +29,17 @@ export default async function handler(req, res) {
 
     const pdf = await page.pdf({
       format: "A4",
-      printBackground: true
+      printBackground: true,
     });
 
     await browser.close();
 
     res.setHeader("Content-Type", "application/pdf");
     res.send(pdf);
-
   } catch (error) {
     console.error("PDF Error:", error);
-    res.status(500).json({ error: error.message || "Internal error" });
+    res
+      .status(500)
+      .json({ error: error.message || "Internal error" });
   }
 }
